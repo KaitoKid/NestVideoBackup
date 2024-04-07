@@ -14,7 +14,7 @@ This module is for personal use only, especially as it uses unpublished APIs. Us
 1. Obtain a Google Master Token with `docker run --rm -it breph/ha-google-home_get-token`. You can use an app password generated from [Google App Passwords](https://myaccount.google.com/apppasswords), make sure you're generated it on the right account
 2. Create a folder on your system for the appdata from this image, and put the `nest.ini` template file inside with the data filled out
 3. If using docker-compose, point the folder that is holding the `nest.ini` to `/config`, and your local storage pool or mounted storageand to `/videos`
-4. You can also build this yourself with `docker-compose up` if you don't want to use the published image
+4. Build it yourself with `docker-compose up -d`, I'll publish an image once I'm more confident in it
 
 ## Credits:
 
