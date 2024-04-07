@@ -60,10 +60,16 @@ def main():
 
     logger.info("Initialized a Data Syncer")
 
+    def sync_schedule():
+        try:
+            des.sync()
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
     # Schedule the job to run every x minutes
     scheduler = AsyncIOScheduler()
     scheduler.add_job(
-        des.sync, 
+        sync_schedule, 
         'interval', 
         minutes=REFRESH_INTERVAL, 
         next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10)
