@@ -64,7 +64,7 @@ def main():
         try:
             des.sync()
         except Exception as e:
-            print(f"An error occurred: {e}")
+            logger.info(f"An error occurred: {e}")
 
     # Schedule the job to run every x minutes
     scheduler = AsyncIOScheduler()

@@ -34,7 +34,7 @@ class DataEventsSync(object):
         )        
 
         # Create the directory to store videos on a per day and per devices basis
-        today = datetime.datetime.now()
+        today = pytz.utc.localize(datetime.datetime.now()).astimezone(pytz.timezone(LOCAL_TIMEZONE))
         # Extract year, month, and day
         year = str(today.year)
         month = str(today.month).zfill(2)  # Ensure two digits for month
