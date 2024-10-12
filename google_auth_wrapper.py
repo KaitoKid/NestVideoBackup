@@ -5,13 +5,15 @@ from nest_video_api import NestDoorbellDevice
 from tools import logger
 import glocaltokens.client
 
+from typing import Optional
+
 class GLocalAuthenticationTokensMultiService(glocaltokens.client.GLocalAuthenticationTokens):
     def __init__(self, *args, **kwargs) -> None:
         super(GLocalAuthenticationTokensMultiService, self).__init__(*args, **kwargs)
 
         self._last_access_token_service = None
     
-    def get_access_token(self, service=glocaltokens.client.ACCESS_TOKEN_SERVICE) -> str | None:
+    def get_access_token(self, service=glocaltokens.client.ACCESS_TOKEN_SERVICE) -> Optional[str]:
         """Return existing or fetch access_token"""
         if (
             self.access_token is None
