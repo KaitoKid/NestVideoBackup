@@ -12,9 +12,17 @@ This module is for personal use only, especially as it uses unpublished APIs. Us
 ## Usage:
 
 1. Obtain a Google Master Token with `docker run --rm -it breph/ha-google-home_get-token`. You can use an app password generated from [Google App Passwords](https://myaccount.google.com/apppasswords), make sure you've generated it on the right account
-2. Create a folder on your system for the appdata from this image, and put the `nest.ini` template file inside with the data filled out
-3. If using docker-compose, point the folder that is holding the `nest.ini` to `/config`, and your local storage pool or mounted storageand to `/videos`
-4. Build it yourself with `docker-compose up -d`, I'll publish an image once I'm more confident in it
+
+if you are using docker:
+3. Create a folder on your system for the appdata from this image, and put the `nest.ini` template file inside with the data filled out
+4. If using docker-compose, point the folder that is holding the `nest.ini` to `/config`, and your local storage pool or mounted storageand to `/videos`
+5. Build it yourself with `docker-compose up -d`, I'll publish an image once I'm more confident in it
+else:
+3. modify the BASE_DIRECTORY = "./videos" in nest_fetch_video.py to the location you want to save the videos.
+4. Run python3 main.py after setting four env variables: GOOGLE_MASTER_TOKEN, GOOGLE_USERNAME, REFRESH_INTERVAL, LOCAL_TIMEZONE
+
+ 
+
 
 ## Credits:
 
