@@ -65,21 +65,26 @@ def main():
             des.sync()
         except Exception as e:
             logger.info(f"An error occurred: {e}")
+    # Create an event loop explicitly
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
 
     # Schedule the job to run every x minutes
-    scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler(event_loop=loop)
     scheduler.add_job(
-        sync_schedule, 
-        'interval', 
-        minutes=REFRESH_INTERVAL, 
+        sync_schedule,
+        'interval',
+        minutes=REFRESH_INTERVAL,
         next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10)
     )
     scheduler.start()
 
     try:
-        asyncio.get_event_loop().run_forever()
+        loop.run_forever()
     except (KeyboardInterrupt, SystemExit):
         pass
+    finally:
+        loop.close()
 
 if __name__ == "__main__":
     main()
