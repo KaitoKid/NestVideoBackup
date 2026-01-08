@@ -6,7 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# Actual files with sensitive information
 docker-compose.yaml
+config/nest.ini
 
 # Distribution / packaging
 .Python

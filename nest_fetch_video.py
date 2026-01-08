@@ -12,11 +12,17 @@ PUID = int(os.environ.get('PUID', 1000))
 PGID = int(os.environ.get('PGID', 1000))
 
 BASE_DIRECTORY = "/videos"
-LOCAL_TIMEZONE = os.environ.get("TIMEZONE", "America/Los_Angeles")
-FETCH_RANGE = 240 # 3 hrs for free nest aware + 1 extra hour in case some data was missed, data isn't deleted immediately at the 3 hr mark
+
+def get_timezone():
+    """Get timezone at runtime to ensure config is loaded."""
+    return os.environ.get("TIMEZONE", "America/Los_Angeles")
+
+def get_fetch_range():
+    """Get fetch range at runtime to ensure config is loaded."""
+    return int(os.environ.get("FETCH_RANGE", 240))
 
 class DataEventsSync(object):
-    
+
     def __init__(self, nest_camera_devices) -> None:
         self._nest_camera_devices = nest_camera_devices
         self._recent_events = set()
@@ -30,11 +36,12 @@ class DataEventsSync(object):
             return
         all_recent_camera_events : list[CameraEvent] = nest_device.get_events(
             end_time = datetime.datetime.now(),
-            duration_minutes=FETCH_RANGE 
-        )        
+            duration_minutes=get_fetch_range()
+        )
 
         # Create the directory to store videos on a per day and per devices basis
-        today = pytz.utc.localize(datetime.datetime.now()).astimezone(pytz.timezone(LOCAL_TIMEZONE))
+        tz = get_timezone()
+        today = pytz.utc.localize(datetime.datetime.now()).astimezone(pytz.timezone(tz))
         # Extract year, month, and day
         year = str(today.year)
         month = str(today.month).zfill(2)  # Ensure two digits for month
@@ -48,7 +55,7 @@ class DataEventsSync(object):
         skipped = 0
         for camera_event_obj in all_recent_camera_events:
             # logger.info(camera_event_obj.start_time)
-            file_name = nest_device.device_name + "_" + camera_event_obj.start_time.astimezone(pytz.timezone(LOCAL_TIMEZONE)).strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
+            file_name = nest_device.device_name + "_" + camera_event_obj.start_time.astimezone(pytz.timezone(tz)).strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
 
             # Check if file has been previously downloaded
             if os.path.exists(os.path.join(directory, file_name)):

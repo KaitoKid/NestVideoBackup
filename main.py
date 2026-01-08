@@ -16,10 +16,10 @@ if not os.path.exists(config_path):
     # Create the config file with empty values
     config = configparser.ConfigParser()
     config['nest'] = {
-        'TIMEZONE': '',
-        'REFRESH_INTERVAL': '',
-        'GOOGLE_USERNAME': '',
-        'GOOGLE_MASTER_TOKEN': ''
+        'timezone': '',
+        'refresh_interval': '',
+        'google_username': '',
+        'google_master_token': ''
     }
     with open(config_path, 'w') as configfile:
         config.write(configfile)
@@ -27,22 +27,47 @@ if not os.path.exists(config_path):
 config = configparser.ConfigParser()
 config.read(config_path)
 
+def strip_inline_comment(value):
+    """Strip inline comments (# or ;) from config values.
+
+    Only strips comments preceded by whitespace to avoid truncating
+    values that legitimately contain # or ; (like master tokens).
+    """
+    for prefix in (' #', ' ;', '\t#', '\t;'):
+        if prefix in value:
+            value = value.split(prefix)[0]
+    return value.strip()
+
+# Keys that are optional and have defaults
+OPTIONAL_KEYS = {'fetch_range'}
+
 if 'nest' in config:
     for key, value in config['nest'].items():
-        if not value:
+        value = strip_inline_comment(value)
+        if not value and key.lower() not in OPTIONAL_KEYS:
             logger.error(f"The value for {key} in the [nest] section is empty")
             sys.exit(1)
-        os.environ[key.upper()] = value
+        if value:
+            os.environ[key.upper()] = value
 else:
     logger.error("The [nest] section does not exist in the config file provided")
     sys.exit(1)
 
 GOOGLE_MASTER_TOKEN = os.environ.get("GOOGLE_MASTER_TOKEN")
 GOOGLE_USERNAME = os.environ.get("GOOGLE_USERNAME")
-REFRESH_INTERVAL=int(os.environ.get("REFRESH_INTERVAL", 60))
-LOCAL_TIMEZONE = os.environ.get("TIMEZONE", "America/Los_Angeles")
+REFRESH_INTERVAL = int(os.environ.get("REFRESH_INTERVAL", 60))
+TIMEZONE = os.environ.get("TIMEZONE", "America/Los_Angeles")
+FETCH_RANGE = int(os.environ.get("FETCH_RANGE", 240))
 
-assert GOOGLE_MASTER_TOKEN and GOOGLE_USERNAME 
+assert GOOGLE_MASTER_TOKEN and GOOGLE_USERNAME
+
+# Log loaded configuration (mask sensitive values)
+logger.info("Configuration loaded:")
+logger.info(f"  timezone: {TIMEZONE}")
+logger.info(f"  refresh_interval: {REFRESH_INTERVAL} minutes")
+logger.info(f"  fetch_range: {FETCH_RANGE} minutes")
+logger.info(f"  google_username: {GOOGLE_USERNAME}")
+logger.info(f"  google_master_token: {GOOGLE_MASTER_TOKEN[:10]}...{GOOGLE_MASTER_TOKEN[-10:]}")
 
 def main():
 
@@ -65,6 +90,7 @@ def main():
             des.sync()
         except Exception as e:
             logger.info(f"An error occurred: {e}")
+
     # Create an event loop explicitly
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

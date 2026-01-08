@@ -87,6 +87,10 @@ class GoogleConnection(object):
 
         homegraph_response = self._google_auth.get_homegraph()
 
+        if homegraph_response is None:
+            logger.error("Failed to get homegraph response. Check your master token and username and whether you've imported your config file appropriately.")
+            raise Exception("Could not authenticate with Google. Your master token may be expired or invalid, or you might've not imported your config file appropriately.")
+
         # This one will list all your home devices
         # One of them would be your Nest Camera, let's find it
         return [
