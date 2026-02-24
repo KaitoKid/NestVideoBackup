@@ -1,18 +1,30 @@
 import datetime
+import re
 import requests
-from nest_video_api import NestDoorbellDevice 
+from nest_video_api import NestDoorbellDevice
 
 from tools import logger
 import glocaltokens.client
+
+
+def sanitize_device_name(name: str) -> str:
+    """Remove path separators, null bytes, and other dangerous characters from device names.
+
+    Prevents path traversal attacks when device names are used in filesystem paths.
+    """
+    sanitized = re.sub(r'[/\\\x00\n\r]', '_', name)
+    sanitized = sanitized.strip('. ')
+    return sanitized or 'unknown_device'
+
 
 class GLocalAuthenticationTokensMultiService(glocaltokens.client.GLocalAuthenticationTokens):
     def __init__(self, *args, **kwargs) -> None:
         super(GLocalAuthenticationTokensMultiService, self).__init__(*args, **kwargs)
 
         self._last_access_token_service = None
-    
+
     def get_access_token(self, service=glocaltokens.client.ACCESS_TOKEN_SERVICE) -> str | None:
-        """Return existing or fetch access_token"""
+        """Return existing or fetch access_token."""
         if (
             self.access_token is None
             or self.access_token_date is None
@@ -46,11 +58,11 @@ class GLocalAuthenticationTokensMultiService(glocaltokens.client.GLocalAuthentic
             self.access_token_date = datetime.datetime.now()
             self._last_access_token_service = service
         logger.debug(
-            "Access token: %s, datetime %s",
-            glocaltokens.client.censor(self.access_token),
+            "Access token: [present], datetime %s",
             self.access_token_date,
         )
         return self.access_token
+
 
 class GoogleConnection(object):
 
@@ -60,22 +72,25 @@ class GoogleConnection(object):
 
     def __init__(self, master_token, username, password="FAKE_PASSWORD"):
         self._google_auth = GLocalAuthenticationTokensMultiService(
-            master_token=master_token, 
-            username=username, 
+            master_token=master_token,
+            username=username,
             password=password,
         )
 
-    def make_nest_get_request(self, device_id : str, url : str, params={}):
+    def make_nest_get_request(self, device_id: str, url: str, params=None):
+        if params is None:
+            params = {}
+
         url = url.format(device_id=device_id)
-        logger.debug(f"Sending request to: '{url}' with params: '{params}'")
+        logger.debug(f"Sending request to: '{url}'")
 
         access_token = self._google_auth.get_access_token(service=GoogleConnection.NEST_SCOPE)
         if not access_token:
             raise Exception("Couldn't get a Nest access token")
-        
+
         res = requests.get(
-            url=url, 
-            params=params, 
+            url=url,
+            params=params,
             headers={
                 "Authorization": f"Bearer {access_token}"
             }
@@ -88,13 +103,15 @@ class GoogleConnection(object):
         homegraph_response = self._google_auth.get_homegraph()
 
         if homegraph_response is None:
-            logger.error("Failed to get homegraph response. Check your master token and username and whether you've imported your config file appropriately.")
-            raise Exception("Could not authenticate with Google. Your master token may be expired or invalid, or you might've not imported your config file appropriately.")
+            logger.error("Failed to get homegraph response. Check your master token and username.")
+            raise Exception("Could not authenticate with Google. Your master token may be expired or invalid.")
 
-        # This one will list all your home devices
-        # One of them would be your Nest Camera, let's find it
         return [
-            NestDoorbellDevice(self, device.device_info.agent_info.unique_id, device.device_name)
+            NestDoorbellDevice(
+                self,
+                device.device_info.agent_info.unique_id,
+                sanitize_device_name(device.device_name)
+            )
             for device in homegraph_response.home.devices
             if "action.devices.traits.CameraStream" in device.traits and "Nest" in device.hardware.model
         ]

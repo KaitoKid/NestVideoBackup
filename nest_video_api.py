@@ -3,7 +3,14 @@ import datetime
 from models import CameraEvent
 
 from tools import logger
-import xml.etree.ElementTree as ET
+
+# Use defusedxml to prevent XML bomb / billion laughs attacks
+try:
+    import defusedxml.ElementTree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+    logger.warning("defusedxml not installed, falling back to stdlib xml.etree (vulnerable to XML bombs)")
+
 
 class NestDoorbellDevice(object):
 
@@ -19,7 +26,6 @@ class NestDoorbellDevice(object):
 
     def __parse_events(self, events_xml):
         root = ET.fromstring(events_xml)
-        # logger.info(events_xml)
         periods = root.findall(".//{urn:mpeg:dash:schema:mpd:2011}Period")
         return [
             CameraEvent.from_attrib(period.attrib, self) for period in periods
@@ -27,15 +33,15 @@ class NestDoorbellDevice(object):
 
     def __download_event_by_time(self, start_time, end_time):
         params = {
-            "start_time" : int(start_time.timestamp()*1000), # 1707368737876
-            "end_time" : int(end_time.timestamp()*1000), # 1707368757371
+            "start_time": int(start_time.timestamp() * 1000),
+            "end_time": int(end_time.timestamp() * 1000),
         }
         return self._connection.make_nest_get_request(
             self._device_id,
-            NestDoorbellDevice.DOWNLOAD_VIDEO_URI, 
+            NestDoorbellDevice.DOWNLOAD_VIDEO_URI,
             params=params
         )
-    
+
     @property
     def device_id(self):
         return self._device_id
@@ -45,24 +51,28 @@ class NestDoorbellDevice(object):
         return self._device_name
 
     def get_events(self, end_time: datetime.datetime, duration_minutes: int):
+        # Ensure timezone-aware datetime
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=datetime.timezone.utc)
+
         start_time = end_time - datetime.timedelta(minutes=duration_minutes)
         params = {
-            "start_time" : start_time.astimezone(pytz.timezone("UTC")).isoformat()[:-9]+"Z", # 2024-02-07T19:32:25.250Z
-            "end_time" : end_time.astimezone(pytz.timezone("UTC")).isoformat()[:-9]+"Z", # 2024-02-08T19:32:25.250Z
-            "types": 4, 
-            "variant" : 2,
+            "start_time": start_time.astimezone(pytz.timezone("UTC")).isoformat()[:-9] + "Z",
+            "end_time": end_time.astimezone(pytz.timezone("UTC")).isoformat()[:-9] + "Z",
+            "types": 4,
+            "variant": 2,
         }
-        logger.info (params)
+        logger.info(f"Fetching events from {params['start_time']} to {params['end_time']}")
         return self.__parse_events(
             self._connection.make_nest_get_request(
                 self._device_id,
-                NestDoorbellDevice.EVENTS_URI, 
+                NestDoorbellDevice.EVENTS_URI,
                 params=params
             )
         )
-        
-    def download_camera_event(self, camera_event : CameraEvent):
+
+    def download_camera_event(self, camera_event: CameraEvent):
         return self.__download_event_by_time(
             camera_event.start_time,
             camera_event.end_time
-        ) 
+        )
