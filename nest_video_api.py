@@ -3,7 +3,7 @@ import datetime
 from models import CameraEvent
 
 from tools import logger
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET
 
 class NestDoorbellDevice(object):
 

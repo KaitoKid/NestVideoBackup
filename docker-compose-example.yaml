@@ -8,3 +8,5 @@ services:
     volumes:
       - /path/to/your/storage:/videos
       - /path/to/folder/with/ini:/config
+    security_opt:
+      - no-new-privileges:true
