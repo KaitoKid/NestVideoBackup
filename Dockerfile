@@ -14,4 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app
 
 # Run main.py when the container launches
+RUN useradd -r -s /bin/false nestbackup
+USER nestbackup
 CMD ["python", "main.py"]

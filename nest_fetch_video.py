@@ -2,7 +2,6 @@ from nest_video_api import NestDoorbellDevice
 from tools import logger
 from models import CameraEvent
 
-from io import BytesIO
 import pytz
 import datetime
 import os
@@ -65,11 +64,14 @@ class DataEventsSync(object):
 
             logger.debug(f"Downloading camera event: {camera_event_obj}")
             video_data = nest_device.download_camera_event(camera_event_obj)
-            video_io = BytesIO(video_data)
-
-            with open(os.path.join(directory, file_name), "wb") as file:
-                file.write(video_io.getvalue())
-
+            if len(video_data) < 8 or video_data[4:8] not in (b'ftyp', b'mdat', b'moov'):
+                logger.warning(f"Invalid MP4 data for {file_name}, skipping")
+                continue
+            tmp_path = os.path.join(directory, file_name + ".tmp")
+            final_path = os.path.join(directory, file_name)
+            with open(tmp_path, "wb") as file:
+                file.write(video_data)
+            os.rename(tmp_path, final_path)
             logger.info("Saved " + file_name + " successfully")
 
             self._recent_events.add(camera_event_obj.event_id)
