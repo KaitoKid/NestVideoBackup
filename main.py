@@ -8,6 +8,7 @@ import datetime
 import asyncio
 import configparser
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from cleanup import cleanup_old_videos
 
 config_path = "/config/nest.ini"
 if not os.path.exists(config_path):
@@ -39,7 +40,7 @@ def strip_inline_comment(value):
     return value.strip()
 
 # Keys that are optional and have defaults
-OPTIONAL_KEYS = {'fetch_range'}
+OPTIONAL_KEYS = {'fetch_range', 'max_age_days', 'max_size_mb', 'cleanup_enabled'}
 
 if 'nest' in config:
     for key, value in config['nest'].items():
@@ -58,6 +59,10 @@ GOOGLE_USERNAME = os.environ.get("GOOGLE_USERNAME")
 REFRESH_INTERVAL = int(os.environ.get("REFRESH_INTERVAL", 60))
 TIMEZONE = os.environ.get("TIMEZONE", "America/Los_Angeles")
 FETCH_RANGE = int(os.environ.get("FETCH_RANGE", 240))
+CLEANUP_ENABLED = os.environ.get("CLEANUP_ENABLED", "false").lower() == "true"
+MAX_AGE_DAYS = int(os.environ.get("MAX_AGE_DAYS", 60))
+MAX_SIZE_MB = float(os.environ.get("MAX_SIZE_MB", 250000))
+
 
 assert GOOGLE_MASTER_TOKEN and GOOGLE_USERNAME
 
@@ -68,6 +73,9 @@ logger.info(f"  refresh_interval: {REFRESH_INTERVAL} minutes")
 logger.info(f"  fetch_range: {FETCH_RANGE} minutes")
 logger.info(f"  google_username: {GOOGLE_USERNAME}")
 logger.info(f"  google_master_token: {GOOGLE_MASTER_TOKEN[:10]}...{GOOGLE_MASTER_TOKEN[-10:]}")
+logger.info(f"  cleanup_enabled: {CLEANUP_ENABLED}")
+logger.info(f"  max_age_days: {MAX_AGE_DAYS} days")
+logger.info(f"  max_size_mb: {MAX_SIZE_MB} MB")
 
 def main():
 
@@ -103,6 +111,15 @@ def main():
         minutes=REFRESH_INTERVAL,
         next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=10)
     )
+    if CLEANUP_ENABLED:
+        scheduler.add_job(
+            lambda: cleanup_old_videos(MAX_AGE_DAYS, MAX_SIZE_MB),
+            'interval',
+            hours=24,
+            next_run_time=datetime.datetime.now() + datetime.timedelta(seconds=30)
+        )
+    else:
+        logger.info("Cleanup is disabled, skipping cleanup scheduler.")
     scheduler.start()
 
     try:
