@@ -38,12 +38,15 @@ def get_total_size(files: list[tuple[str, float, datetime.datetime]]) -> int:
 def cleanup_old_videos(max_age_days: int = 60, max_size_mb: float = 250000):
     """
     Delete videos that are either:
-      - Older than max_age_days days, OR
+      - Older than max_age_days days when max_age_days is greater than zero, OR
       - Causing total storage to exceed max_size_mb MB (oldest deleted first)
+
+    Set max_age_days to 0 to disable age-based deletion.
     """
     max_size_bytes = max_size_mb * 1024 ** 2
 
-    logger.info(f"Running cleanup (max age: {max_age_days} days, max size: {max_size_mb} MB)...")
+    age_limit = f"{max_age_days} days" if max_age_days > 0 else "disabled"
+    logger.info(f"Running cleanup (max age: {age_limit}, max size: {max_size_mb} MB)...")
 
     files = get_all_video_files()
     if not files:
@@ -52,7 +55,11 @@ def cleanup_old_videos(max_age_days: int = 60, max_size_mb: float = 250000):
 
     total_size = get_total_size(files)
     now = datetime.datetime.now()
-    cutoff_date = now - datetime.timedelta(days=max_age_days)
+    cutoff_date = (
+        now - datetime.timedelta(days=max_age_days)
+        if max_age_days > 0
+        else None
+    )
 
     deleted_count = 0
     deleted_bytes = 0
@@ -61,7 +68,7 @@ def cleanup_old_videos(max_age_days: int = 60, max_size_mb: float = 250000):
         deleted = False
 
         # Rule 1: delete if older than max_age_days
-        if mtime < cutoff_date:
+        if cutoff_date is not None and mtime < cutoff_date:
             reason = f"older than {max_age_days} days (modified {mtime.strftime('%Y-%m-%d')})"
             deleted = True
 

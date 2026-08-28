@@ -72,9 +72,13 @@ logger.info(f"  timezone: {TIMEZONE}")
 logger.info(f"  refresh_interval: {REFRESH_INTERVAL} minutes")
 logger.info(f"  fetch_range: {FETCH_RANGE} minutes")
 logger.info(f"  google_username: {GOOGLE_USERNAME}")
-logger.info(f"  google_master_token: {GOOGLE_MASTER_TOKEN[:10]}...{GOOGLE_MASTER_TOKEN[-10:]}")
+logger.info("  google_master_token: [configured]")
 logger.info(f"  cleanup_enabled: {CLEANUP_ENABLED}")
-logger.info(f"  max_age_days: {MAX_AGE_DAYS} days")
+logger.info(
+    f"  max_age_days: {MAX_AGE_DAYS} days"
+    if MAX_AGE_DAYS > 0
+    else "  max_age_days: disabled"
+)
 logger.info(f"  max_size_mb: {MAX_SIZE_MB} MB")
 
 def main():

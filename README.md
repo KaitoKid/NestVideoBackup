@@ -17,16 +17,56 @@ I wanted an easy way to store my Nest event history to my local NAS and store mo
 
 ### 1. Obtain a Google Master Token
 
-Run the following command to get your master token:
+The old `breph/ha-google-home_get-token` image uses Google's direct
+email/password login flow, which may now fail with `BadAuthentication` or
+`NeedsBrowser`. Use the browser-based flow supported by
+[`gpsoauth`](https://pypi.org/project/gpsoauth/) instead.
+
+First, build this repository's image:
+
 ```bash
-docker run --rm -it breph/ha-google-home_get-token
+docker build -t nest-video-backup .
 ```
 
-You can use an app password generated from [Google App Passwords](https://myaccount.google.com/apppasswords). Make sure you've generated it on the account that has your Nest cameras.
+Then obtain and exchange a temporary browser token:
+
+1. Open [Google EmbeddedSetup](https://accounts.google.com/EmbeddedSetup) in a
+   normal browser.
+2. Sign in with the Google account that has access to your Nest cameras,
+   complete 2-step verification, and select **I agree** when prompted. A page
+   ending in `#close` is normal.
+3. Open the browser's developer tools and find the `oauth_token` cookie for
+   `https://accounts.google.com`:
+   - Chrome/Edge: **Application** -> **Storage** -> **Cookies**
+   - Firefox: **Storage** -> **Cookies**
+4. Copy the complete cookie value (it normally starts with `oauth2_4/` or
+   `oauth2_1/`) and use it immediately in the command below.
+
+Create the config directory, then run the included exchange helper:
+
+```bash
+mkdir -p /path/to/config
+
+docker run --rm -it \
+  --entrypoint python \
+  --mount type=bind,src=/path/to/config,dst=/config \
+  nest-video-backup \
+  /app/configure_from_oauth_token.py
+```
+
+The helper prompts for your Google email and the `oauth_token` without echoing
+the token. It exchanges the temporary cookie and saves only the resulting
+master token to `/path/to/config/nest.ini` with mode `0600`. It does not need
+your Google password or an app password.
+
+Treat both tokens as passwords: do not put them in shell arguments, screenshots,
+issues, or chat messages. If the helper returns `AUTH_FAILED`, repeat the
+EmbeddedSetup flow and copy a fresh `oauth_token` cookie.
 
 ### 2. Create the Configuration File
 
-Create a folder on your system for the config (e.g., `/path/to/config`), then create a `nest.ini` file inside it:
+The token helper creates `/path/to/config/nest.ini`. Review it and update the
+timezone, sync interval, fetch range, and cleanup settings as needed:
 
 ```ini
 [nest]
@@ -41,10 +81,10 @@ refresh_interval = 60
 # Recommended: 240 for free Nest Aware (3 hr history + 1 hr buffer)
 fetch_range = 240
 
-# Your Google account email
+# Filled in by configure_from_oauth_token.py
 google_username = youremail@gmail.com
 
-# The master token from step 1
+# Filled in by configure_from_oauth_token.py
 google_master_token = YOUR_MASTER_TOKEN_HERE
 ```
 
@@ -52,7 +92,12 @@ A sample config is provided in `config/sample_config_nest.ini`.
 
 ### 3. Run with Docker Compose
 
-Update `docker-compose.yaml` to point to your config and video storage directories:
+Copy the provided example, then update it to point to your config and video
+storage directories:
+
+```bash
+cp docker-compose-example.yaml docker-compose.yaml
+```
 
 ```yaml
 volumes:
@@ -62,7 +107,7 @@ volumes:
 
 Then start the container:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Configuration Options
@@ -87,4 +132,6 @@ He also mentioned the original credits to some other incredible developers:
 
 Much credits for the authors of the [**glocaltokens**](https://github.com/leikoilja/glocaltokens) module
 
-Thanks also for the authors of the docker [**ha-google-home_get-token**](https://hub.docker.com/r/breph/ha-google-home_get-token)
+Previous versions used the [**ha-google-home_get-token**](https://hub.docker.com/r/breph/ha-google-home_get-token)
+Docker image. The current setup uses `gpsoauth`'s browser-based exchange because
+Google may reject the older direct password flow.

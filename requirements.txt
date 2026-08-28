@@ -2,6 +2,7 @@ python-dotenv==0.21.1
 isodate>=0.6.1
 apscheduler>=3.10.4
 glocaltokens>=0.7.0
+gpsoauth>=2.0.0,<3.0.0
 python-dateutil>=2.8.2
 pydantic>=2.7.4
 pytz>=2024.2
