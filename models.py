@@ -12,6 +12,11 @@ except ValueError:
     z_date_parser = dateutil.parser.parse
 
 
+# mp4clip returns only the footage recorded inside the requested range, so
+# asking for the event's real length is safe. A 1 minute cap cut long events short.
+MAX_EVENT_DURATION = datetime.timedelta(minutes=10)
+
+
 class CameraEvent(BaseModel):
     device: object
     start_time: datetime.datetime
@@ -34,5 +39,5 @@ class CameraEvent(BaseModel):
         return CameraEvent(
             device=nest_device,
             start_time=z_date_parser(xml_period_attributes["programDateTime"]),
-            duration=min(datetime.timedelta(minutes=1), isodate.parse_duration(xml_period_attributes["duration"]))
+            duration=min(MAX_EVENT_DURATION, isodate.parse_duration(xml_period_attributes["duration"]))
         )
