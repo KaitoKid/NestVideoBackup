@@ -12,10 +12,17 @@ class NestDoorbellDevice(object):
     EVENTS_URI = NEST_API_DOMAIN + "/dashmanifest/namespace/nest-phoenix-prod/device/{device_id}"
     DOWNLOAD_VIDEO_URI = NEST_API_DOMAIN + "/mp4clip/namespace/nest-phoenix-prod/device/{device_id}"
 
-    def __init__(self, google_auth_connection, device_id, device_name):
+    def __init__(
+        self,
+        google_auth_connection,
+        device_id,
+        device_name,
+        storage_name=None,
+    ):
         self._connection = google_auth_connection
         self._device_id = device_id
         self._device_name = device_name
+        self._storage_name = storage_name or device_name
 
     def __parse_events(self, events_xml):
         root = ET.fromstring(events_xml)
@@ -43,6 +50,10 @@ class NestDoorbellDevice(object):
     @property
     def device_name(self):
         return self._device_name
+
+    @property
+    def storage_name(self):
+        return self._storage_name
 
     def get_events(self, end_time: datetime.datetime, duration_minutes: int):
         start_time = end_time - datetime.timedelta(minutes=duration_minutes)

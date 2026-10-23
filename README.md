@@ -13,6 +13,17 @@ I wanted an easy way to store my Nest event history to my local NAS and store mo
 3. **Downloads full-quality Google Nest video clips**
 4. Stores those clips to a local storage directory by `device_name` and into subdirectories with the format `YYYY/MM/DD/*.mp4`
 
+Legacy Nest cameras that have completed the device transfer to Google Home use
+the same event-manifest and MP4 download flow as newer cameras. The application
+automatically resolves the legacy HomeGraph entry to the migrated camera
+backend ID exposed by Google Home.
+
+If multiple cameras have the same `device_name`, one directly supported camera
+keeps the original directory name for backward compatibility and the others get
+a stable eight-character device-ID suffix. For example, two cameras named
+`Front Door` are stored separately as `Front Door/...` and
+`Front Door_A1B2C3D4/...`. Unique camera names keep the original layout.
+
 ## Setup
 
 ### 1. Obtain a Google Master Token

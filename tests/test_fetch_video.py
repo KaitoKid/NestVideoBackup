@@ -12,6 +12,7 @@ from models import CameraEvent
 class FakeDevice:
     device_id = "DEVICE_TEST"
     device_name = "Doorbell"
+    storage_name = "Doorbell"  # the gen1 fork files clips under storage_name
 
     def __init__(self, start_time):
         self.event = CameraEvent(device=self, start_time=start_time, duration=datetime.timedelta(seconds=15))
