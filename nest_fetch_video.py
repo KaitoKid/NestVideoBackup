@@ -39,23 +39,18 @@ class DataEventsSync(object):
             duration_minutes=get_fetch_range()
         )
 
-        # Create the directory to store videos on a per day and per devices basis
         tz = get_timezone()
-        today = pytz.utc.localize(datetime.datetime.now()).astimezone(pytz.timezone(tz))
-        # Extract year, month, and day
-        year = str(today.year)
-        month = str(today.month).zfill(2)  # Ensure two digits for month
-        day = str(today.day).zfill(2)  # Ensure two digits for day
-        directory = os.path.join(BASE_DIRECTORY, nest_device.device_name, year, month, day)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
 
         logger.info(f"[{nest_device.device_id}] Received {len(all_recent_camera_events)} camera events")
 
         skipped = 0
         for camera_event_obj in all_recent_camera_events:
-            # logger.info(camera_event_obj.start_time)
-            file_name = nest_device.device_name + "_" + camera_event_obj.start_time.astimezone(pytz.timezone(tz)).strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
+            local_start = camera_event_obj.start_time.astimezone(pytz.timezone(tz))
+            # Filing by today's date made the check below miss clips from before
+            # midnight that were still inside the fetch range, so they downloaded again.
+            directory = os.path.join(BASE_DIRECTORY, nest_device.device_name, local_start.strftime("%Y/%m/%d"))
+            os.makedirs(directory, exist_ok=True)
+            file_name = nest_device.device_name + "_" + local_start.strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
 
             # Check if file has been previously downloaded
             if os.path.exists(os.path.join(directory, file_name)):
