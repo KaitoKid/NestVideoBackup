@@ -30,9 +30,11 @@ class DataEventsSync(object):
     def sync_single_nest_camera(self, nest_device : NestDoorbellDevice):
 
         logger.info(f"Syncing: {nest_device.device_id}")
-        if "DEVICE_" not in nest_device.device_id:
-            # I only have a Gen 2 Nest Doorbell - have not tested other doorbells yet
-            logger.info(f"{nest_device.device_id} does not look like a gen 2 Nest Doorbell, skipping...")
+        if not nest_device.device_id.startswith("DEVICE_"):
+            logger.info(
+                f"{nest_device.device_name} does not expose a supported "
+                "Google Home camera backend ID, skipping..."
+            )
             return
         all_recent_camera_events : list[CameraEvent] = nest_device.get_events(
             end_time = datetime.datetime.now(),
@@ -48,9 +50,9 @@ class DataEventsSync(object):
             local_start = camera_event_obj.start_time.astimezone(pytz.timezone(tz))
             # Filing by today's date made the check below miss clips from before
             # midnight that were still inside the fetch range, so they downloaded again.
-            directory = os.path.join(BASE_DIRECTORY, nest_device.device_name, local_start.strftime("%Y/%m/%d"))
+            directory = os.path.join(BASE_DIRECTORY, nest_device.storage_name, local_start.strftime("%Y/%m/%d"))
             os.makedirs(directory, exist_ok=True)
-            file_name = nest_device.device_name + "_" + local_start.strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
+            file_name = nest_device.storage_name + "_" + local_start.strftime("%Y-%m-%d_%I-%M-%S%p") + ".mp4"
 
             # Check if file has been previously downloaded
             if os.path.exists(os.path.join(directory, file_name)):
